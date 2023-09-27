@@ -31,6 +31,7 @@ from OCC.Core.Aspect import (Aspect_TOM_POINT,
 							 Aspect_TOM_BALL)
 
 from PyQt5 import QtCore 
+from PyQt5.QtWidgets import QFileDialog
 from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_BLACK
 class sketch_bspline(object):
 	def __init__(self,parent=None,gp_Dir=None):
@@ -51,8 +52,10 @@ class sketch_bspline(object):
 		self.ais_point_dict={}
 		self.perious_ais_point_ID=None
 		self.bspline_curve=None
+		self.bspline_curve_dict=None
 		self.dialogWidget=None
 		self.Distance=0
+		self.dynamics_point_move_point_shield=False
 		self.import_bspline_point()
 		self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.connect(self.dynamics_point_highlight)
 		self.parent.Displayshape_core.canva.mousePressEvent_Signal.trigger.connect(self.mousepress)
@@ -92,9 +95,34 @@ class sketch_bspline(object):
 		interp.Perform()
 		return interp.Curve()
 
+	def generate_bspline_setvalue(self,n,pnt):
+		self.harray.SetValue(n,pnt)
+		self.point_dict[n]=pnt
+		interp = GeomAPI_Interpolate(self.harray, True, 0.0001)
+		interp.Perform()
+
+	def test(self):
+		if self.dynamics_point_move_point_shield==False:
+			x=self.dialogWidget.qdoubleSpinBox_x.value()
+			y=self.dialogWidget.qdoubleSpinBox_y.value()
+			z=self.dialogWidget.qdoubleSpinBox_z.value()
+			self.ais_point_dict[self.perious_ais_point_ID]=self.draw_point(x,y,0,1)
+			self.parent.Displayshape_core.canva._display.Context.Display(self.ais_point_dict[self.perious_ais_point_ID],False)
+			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
+			bspline_curve=self.generate_bspline(self.perious_ais_point_ID,gp_Pnt(x,y,z))
+			edge = BRepBuilderAPI_MakeEdge(bspline_curve).Edge()
+			self.bspline_curve.SetShape(edge)
+			print(self.bspline_curve)
+			self.parent.Displayshape_core.canva._display.Context.Redisplay(self.bspline_curve,True,False)  # 重新计算更新已经显示的物
+			self.parent.Displayshape_core.canva._display.Repaint()
+			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
+
+			print(123)
 	def import_bspline_point(self):
 		try:
 			filename = r"./data/guangshun19.txt"
+			self.chose_document = QFileDialog.getOpenFileName(self.parent, '打开文件', './'," TXT files(*.TXT , *.TEXT);;(*.DAT);;(*.INI)")  # 选择转换的文价夹
+			filename = self.chose_document[0]  # 获取打开文件夹路径
 			bspline_curve = self.generate_bspline_from_file(filename)
 			edge = BRepBuilderAPI_MakeEdge(bspline_curve).Edge()
 			self.bspline_curve=AIS_Shape(edge)
@@ -102,10 +130,7 @@ class sketch_bspline(object):
 			self.bspline_curve.SetWidth(2)
 			self.parent.Displayshape_core.canva._display.Context.Display(self.bspline_curve,
 																				 False)  # 重新计算更新已经显示的物
-			print(self.bspline_curve)
-			#self.parent.parameter_items.show()
-			#self.parent.parameter_panel.set()
-			#self.parent.parameter_panel.inputdata(self.point_dict)
+	
 		except Exception as e:
 			print(e)
 
@@ -114,6 +139,12 @@ class sketch_bspline(object):
 			try:
 				self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
 				self.ais_point=None
+				(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
+				self.dialogWidget.qdoubleSpinBox_x.setValue(x)
+				self.dialogWidget.qdoubleSpinBox_y.setValue(y)
+				self.dialogWidget.qdoubleSpinBox_z.setValue(z)
+				self.dialogWidget.qdoubleSpinBox_x.valueChanged.editingFinished(self.test)
+
 			except Exception as e:
 				print(e)
 				pass
@@ -149,9 +180,7 @@ class sketch_bspline(object):
 		if self.ais_point==None:
 			for ID in self.point_dict.keys():
 				try:
-					
 					nearest_point2 = self.point_dict[ID]
-					
 					if Distance > nearest_point1.Distance(nearest_point2) or Distance == 0:
 						Distance = nearest_point1.Distance(nearest_point2)
 						x, y, z = (nearest_point2.X()), (nearest_point2.Y()), (nearest_point2.Z())
@@ -161,11 +190,11 @@ class sketch_bspline(object):
 					print(e)
 					pass
 			
-			if Distance<30*(1/self.parent.Displayshape_core.canva.scaling_ratio):
+			if Distance<20*(1/self.parent.Displayshape_core.canva.scaling_ratio):
 				self.draw_point(x,y,0,0,None,9,[0,0,255])
 				self.Distance=Distance
 
-			elif Distance>30*(1/self.parent.Displayshape_core.canva.scaling_ratio) and self.ais_point!=None:
+			elif Distance>20*(1/self.parent.Displayshape_core.canva.scaling_ratio) and self.ais_point!=None:
 				#self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
 				#self.ais_point=None
 				pass
@@ -178,7 +207,7 @@ class sketch_bspline(object):
 				direction = gp_Dir(vx, vy, vz)
 				nearest_point1=gp_Pnt(x,y,0)
 				Distance=self.point_dict[self.perious_ais_point_ID].Distance(nearest_point1)
-				if Distance>30*(1/self.parent.Displayshape_core.canva.scaling_ratio):
+				if Distance>20*(1/self.parent.Displayshape_core.canva.scaling_ratio):
 					self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
 					self.ais_point=None
 			except Exception as e:
@@ -186,6 +215,7 @@ class sketch_bspline(object):
 				pass
 
 	def dynamics_point_move_point(self):
+		self.dynamics_point_move_point_shield=True
 		self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point_dict[self.perious_ais_point_ID],False)
 		(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
 
@@ -204,7 +234,7 @@ class sketch_bspline(object):
 		self.parent.Displayshape_core.canva._display.Context.Redisplay(self.bspline_curve,True,False)  # 重新计算更新已经显示的物
 		self.parent.Displayshape_core.canva._display.Repaint()
 		self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
-		
+		self.dynamics_point_move_point_shield=False
 
 
 	def draw_point(self,x,y,z,mode=0,id=None,point_type=0,color=None):
