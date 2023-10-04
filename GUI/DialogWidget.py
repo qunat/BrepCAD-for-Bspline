@@ -77,12 +77,15 @@ class DialogWidget(QtWidgets.QMainWindow):
 		self.parent.statusbar.showMessage("请选择草绘平面")
 
 	def ok(self):
-		self.parent.Sketcher.uptoplane()
-		self.parent.change_ribbon(init_name="Ribbon_sketcher")
+		#self.qdoubleSpinBox_x.valueChanged.disconnect()
+		print(88)
 		self.close()
 		
 	def cancel(self):
+		#self.qdoubleSpinBox_x.valueChanged.disconnect()
+		print(88)
 		self.close()
+		
 		
 	def Show(self):
 		self.show()
