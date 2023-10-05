@@ -14,6 +14,7 @@ used_backend = load_backend(backend_str)
 
 import sys
 from  module import ShowGui
+
 class Mywindown(QtWidgets.QMainWindow, ShowGui.Ui_MainWindow,MainGui.Ui_MainWindow):
 	def __init__(self, parent=None):
 		super(Mywindown, self).__init__(parent)

@@ -103,9 +103,7 @@ class sketch_bspline(object):
 		interp.Perform()
 	def test(self):
 		if self.dynamics_point_move_point_shield==False:
-			
 			self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point_dict[self.mousePress_select_point_ID],False)
-			print(self.mousePress_select_point_ID,"已经移除")
 			x=self.dialogWidget.qdoubleSpinBox_x.value()
 			y=self.dialogWidget.qdoubleSpinBox_y.value()
 			z=self.dialogWidget.qdoubleSpinBox_z.value()
@@ -120,7 +118,6 @@ class sketch_bspline(object):
 			self.parent.Displayshape_core.canva._display.Context.Redisplay(self.bspline_curve,True,False)  # 重新计算更新已经显示的物
 			self.parent.Displayshape_core.canva._display.Repaint()
 			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
-			print(123)
 	def import_bspline_point(self):
 		try:
 			filename = r"./data/guangshun19.txt"
@@ -139,14 +136,22 @@ class sketch_bspline(object):
 			pass
 	def mousepress(self):
 		if self.parent.Displayshape_core.canva.mousepresstype==QtCore.Qt.LeftButton :
+			(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
+			print(x,y,z)
+			if self.ais_point==None:
+				self.perious_ais_point_ID=None
+			else:
+				self.mousePress_select_point_ID=self.perious_ais_point_ID	
+
+			
 			try:
 				self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
-				self.ais_point=None
-				self.mousePress_select_point_ID=self.perious_ais_point_ID
+				#self.ais_point=None
 				self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.disconnect(self.dynamics_point_highlight)
 				self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.connect(self.dynamics_point_move_point)
 				self.parent.Displayshape_core.canva.mouseReleaseEvent_Signal.trigger.connect(self.mouserelease)
 			except Exception as e:
+				print("提前结束")
 				pass
 
 			if self.dialogWidget==None:
@@ -154,11 +159,18 @@ class sketch_bspline(object):
 				self.dialogWidget.Show()
 				self.dialogWidget.qdoubleSpinBox_x.valueChanged.connect(self.test)
 				#self.dialogWidget.qdoubleSpinBox_x.ok.clicked.connect()
-			if self.dialogWidget!=None :
-				(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
-				#self.dialogWidget.qdoubleSpinBox_x.setValue(x)
-				#self.dialogWidget.qdoubleSpinBox_y.setValue(y)
-				#self.dialogWidget.qdoubleSpinBox_z.setValue(z)
+			print("mouse press id",self.perious_ais_point_ID,self.ais_point,self.dialogWidget)
+
+			if self.dialogWidget!=None and self.ais_point!=None:
+				
+				#(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
+				x=self.point_dict[self.mousePress_select_point_ID].X()
+				y=self.point_dict[self.mousePress_select_point_ID].Y()
+				z=self.point_dict[self.mousePress_select_point_ID].Z()
+				print("这里应该会改变",x,y,z)
+				self.dialogWidget.qdoubleSpinBox_x.setValue(x)
+				self.dialogWidget.qdoubleSpinBox_y.setValue(y) 
+				self.dialogWidget.qdoubleSpinBox_z.setValue(z)
 		
 			
 	def mouserelease(self):
@@ -169,7 +181,6 @@ class sketch_bspline(object):
 			pass
 
 	def dynamics_point_highlight(self):
-		print("dynamics_point_highlight",self.Distance,self.ais_point)
 		shape_id = 0
 		Distance = 0
 		_dragStartPosY = self.parent.Displayshape_core.canva.dragStartPosY
@@ -205,6 +216,7 @@ class sketch_bspline(object):
 				#self.ais_point=None
 				pass
 
+
 		else:
 			try:
 				_dragStartPosY = self.parent.Displayshape_core.canva.dragStartPosY
@@ -224,7 +236,7 @@ class sketch_bspline(object):
 		
 
 	def dynamics_point_move_point(self):
-		if self.perious_ais_point_ID!=None:
+		if self.perious_ais_point_ID!=None and self.ais_point==None:
 			self.dynamics_point_move_point_shield=True
 			self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point_dict[self.perious_ais_point_ID],False)
 			(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
@@ -233,13 +245,13 @@ class sketch_bspline(object):
 			self.dialogWidget.qdoubleSpinBox_y.setValue(y)
 			self.dialogWidget.qdoubleSpinBox_z.setValue(z)
 			
+			self.mousePress_select_point_ID=self.perious_ais_point_ID
 			self.ais_point_dict[self.perious_ais_point_ID]=self.draw_point(x,y,0,1)
 			self.parent.Displayshape_core.canva._display.Context.Display(self.ais_point_dict[self.perious_ais_point_ID],False)
 			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
 			bspline_curve=self.generate_bspline(self.perious_ais_point_ID,gp_Pnt(x,y,z))
 			edge = BRepBuilderAPI_MakeEdge(bspline_curve).Edge()
 			self.bspline_curve.SetShape(edge)
-			print(self.bspline_curve)
 			self.parent.Displayshape_core.canva._display.Context.Redisplay(self.bspline_curve,True,False)  # 重新计算更新已经显示的物
 			self.parent.Displayshape_core.canva._display.Repaint()
 			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
