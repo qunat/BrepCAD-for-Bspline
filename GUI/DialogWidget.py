@@ -78,11 +78,13 @@ class DialogWidget(QtWidgets.QMainWindow):
 
 	def ok(self):
 		#self.qdoubleSpinBox_x.valueChanged.disconnect()
+		#self.parent.Sketcher.sketch_bspline.dialogWidget=None
 		print(88)
 		self.close()
 		
 	def cancel(self):
 		#self.qdoubleSpinBox_x.valueChanged.disconnect()
+		#self.parent.Sketcher.sketch_bspline.dialogWidget=None
 		print(88)
 		self.close()
 		

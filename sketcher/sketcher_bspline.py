@@ -110,7 +110,7 @@ class sketch_bspline(object):
 			y=self.dialogWidget.qdoubleSpinBox_y.value()
 			z=self.dialogWidget.qdoubleSpinBox_z.value()
 			print("TEST ID",self.mousePress_select_point_ID)
-			self.ais_point_dict[self.perious_ais_point_ID]=self.draw_point(x,y,0,1)
+			self.ais_point_dict[self.mousePress_select_point_ID]=self.draw_point(x,y,0,1)
 			self.parent.Displayshape_core.canva._display.Context.Display(self.ais_point_dict[self.mousePress_select_point_ID],False)
 			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
 
@@ -136,32 +136,29 @@ class sketch_bspline(object):
 	
 		except Exception as e:
 			print(e)
-
+			pass
 	def mousepress(self):
-		if self.parent.Displayshape_core.canva.mousepresstype==QtCore.Qt.LeftButton:
+		if self.parent.Displayshape_core.canva.mousepresstype==QtCore.Qt.LeftButton :
 			try:
 				self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
 				self.ais_point=None
-				
+				self.mousePress_select_point_ID=self.perious_ais_point_ID
+				self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.disconnect(self.dynamics_point_highlight)
+				self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.connect(self.dynamics_point_move_point)
+				self.parent.Displayshape_core.canva.mouseReleaseEvent_Signal.trigger.connect(self.mouserelease)
 			except Exception as e:
-				print(11111,e)
 				pass
-				
-			self.mousePress_select_point_ID=self.perious_ais_point_ID
-			self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.disconnect(self.dynamics_point_highlight)
-			self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.connect(self.dynamics_point_move_point)
-			self.parent.Displayshape_core.canva.mouseReleaseEvent_Signal.trigger.connect(self.mouserelease)
 
 			if self.dialogWidget==None:
 				self.dialogWidget=DialogWidget(parent=self.parent)
 				self.dialogWidget.Show()
 				self.dialogWidget.qdoubleSpinBox_x.valueChanged.connect(self.test)
 				#self.dialogWidget.qdoubleSpinBox_x.ok.clicked.connect()
-			if self.dialogWidget!=None:
+			if self.dialogWidget!=None :
 				(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
-				self.dialogWidget.qdoubleSpinBox_x.setValue(x)
-				self.dialogWidget.qdoubleSpinBox_y.setValue(y)
-				self.dialogWidget.qdoubleSpinBox_z.setValue(z)
+				#self.dialogWidget.qdoubleSpinBox_x.setValue(x)
+				#self.dialogWidget.qdoubleSpinBox_y.setValue(y)
+				#self.dialogWidget.qdoubleSpinBox_z.setValue(z)
 		
 			
 	def mouserelease(self):
@@ -172,6 +169,7 @@ class sketch_bspline(object):
 			pass
 
 	def dynamics_point_highlight(self):
+		print("dynamics_point_highlight",self.Distance,self.ais_point)
 		shape_id = 0
 		Distance = 0
 		_dragStartPosY = self.parent.Displayshape_core.canva.dragStartPosY
@@ -202,6 +200,7 @@ class sketch_bspline(object):
 
 			elif Distance>20*(1/self.parent.Displayshape_core.canva.scaling_ratio) and self.ais_point!=None:
 				self.perious_ais_point_ID=None
+				self.Distance=50
 				#self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
 				#self.ais_point=None
 				pass
@@ -222,7 +221,8 @@ class sketch_bspline(object):
 			except Exception as e:
 				print(e)
 				pass
-		print(66,self.perious_ais_point_ID)
+		
+
 	def dynamics_point_move_point(self):
 		if self.perious_ais_point_ID!=None:
 			self.dynamics_point_move_point_shield=True
