@@ -22,6 +22,7 @@ class DialogWidget(QtWidgets.QMainWindow):
 		y = parent.geometry().y() + parent.geometry().height() / 4
 		self.setGeometry(x, y, 150, 40)
 		self.setWindowTitle('样条点设置')
+		self.qdoubleSpinBox_valuechanged=False
 		self.pushbutton_ok.clicked.connect(self.ok)
 		self.pushbutton_cancel.clicked.connect(self.cancel)
 		
@@ -79,13 +80,13 @@ class DialogWidget(QtWidgets.QMainWindow):
 	def ok(self):
 		#self.qdoubleSpinBox_x.valueChanged.disconnect()
 		#self.parent.Sketcher.sketch_bspline.dialogWidget=None
-		print(88)
+		self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.disconnect()
 		self.close()
 		
 	def cancel(self):
 		#self.qdoubleSpinBox_x.valueChanged.disconnect()
 		#self.parent.Sketcher.sketch_bspline.dialogWidget=None
-		print(88)
+		self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.disconnect()
 		self.close()
 		
 		

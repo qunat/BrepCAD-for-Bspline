@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from OCC.Core import BRepExtrema
+from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.Geom import Geom_CartesianPoint, Geom_Line
 from OCC.Core.GeomAPI import GeomAPI_Interpolate
@@ -29,10 +30,12 @@ from OCC.Core.Aspect import (Aspect_TOM_POINT,
 							 Aspect_TOM_RING2,
 							 Aspect_TOM_RING3,
 							 Aspect_TOM_BALL)
-
+from OCC.Extend.DataExchange import write_stl_file,write_step_file,write_iges_file
 from PyQt5 import QtCore 
 from PyQt5.QtWidgets import QFileDialog
 from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_BLACK
+from PyQt5.QtWidgets import QFileDialog, QWidget,QApplication
+
 class sketch_bspline(object):
 	def __init__(self,parent=None,gp_Dir=None):
 		super(sketch_bspline, self).__init__()
@@ -57,6 +60,7 @@ class sketch_bspline(object):
 		self.dialogWidget=None
 		self.Distance=0
 		self.dynamics_point_move_point_shield=False
+		self.export_shape=None
 		self.import_bspline_point()
 		self.parent.Displayshape_core.canva.mouse_move_Signal.trigger.connect(self.dynamics_point_highlight)
 		self.parent.Displayshape_core.canva.mousePressEvent_Signal.trigger.connect(self.mousepress)
@@ -73,7 +77,7 @@ class sketch_bspline(object):
 			for line in lines:
 				coordinates = line.strip().split()
 				if len(coordinates) == 3:
-					x, y, z = float(coordinates[0])*10, float(coordinates[1])*10, float(coordinates[2])
+					x, y, z = float(coordinates[0]), float(coordinates[1]), float(coordinates[2])
 					self.draw_point(x,y,0,0,n)
 					
 					points.append(gp_Pnt(x, y, 0))
@@ -102,18 +106,19 @@ class sketch_bspline(object):
 		interp = GeomAPI_Interpolate(self.harray, True, 0.0001)
 		interp.Perform()
 	def test(self):
-		if self.dynamics_point_move_point_shield==False:
+		if self.dynamics_point_move_point_shield==False and self.dialogWidget.qdoubleSpinBox_valuechanged:
 			self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point_dict[self.mousePress_select_point_ID],False)
 			x=self.dialogWidget.qdoubleSpinBox_x.value()
 			y=self.dialogWidget.qdoubleSpinBox_y.value()
 			z=self.dialogWidget.qdoubleSpinBox_z.value()
-			print("TEST ID",self.mousePress_select_point_ID)
+			print("TEST ID",self.mousePress_select_point_ID,x,y,z)
 			self.ais_point_dict[self.mousePress_select_point_ID]=self.draw_point(x,y,0,1)
 			self.parent.Displayshape_core.canva._display.Context.Display(self.ais_point_dict[self.mousePress_select_point_ID],False)
 			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
 
 			bspline_curve=self.generate_bspline(self.mousePress_select_point_ID,gp_Pnt(x,y,z))
 			edge = BRepBuilderAPI_MakeEdge(bspline_curve).Edge()
+			self.export_shape=edge
 			self.bspline_curve.SetShape(edge)
 			self.parent.Displayshape_core.canva._display.Context.Redisplay(self.bspline_curve,True,False)  # 重新计算更新已经显示的物
 			self.parent.Displayshape_core.canva._display.Repaint()
@@ -125,6 +130,7 @@ class sketch_bspline(object):
 			filename = self.chose_document[0]  # 获取打开文件夹路径
 			bspline_curve = self.generate_bspline_from_file(filename)
 			edge = BRepBuilderAPI_MakeEdge(bspline_curve).Edge()
+			self.export_shape=edge
 			self.bspline_curve=AIS_Shape(edge)
 			self.bspline_curve.SetColor(Quantity_Color(Quantity_NOC_BLACK))
 			self.bspline_curve.SetWidth(2)
@@ -158,11 +164,12 @@ class sketch_bspline(object):
 				self.dialogWidget=DialogWidget(parent=self.parent)
 				self.dialogWidget.Show()
 				self.dialogWidget.qdoubleSpinBox_x.valueChanged.connect(self.test)
-				#self.dialogWidget.qdoubleSpinBox_x.ok.clicked.connect()
+				self.dialogWidget.qdoubleSpinBox_y.valueChanged.connect(self.test)
+				self.dialogWidget.qdoubleSpinBox_z.valueChanged.connect(self.test)
 			print("mouse press id",self.perious_ais_point_ID,self.ais_point,self.dialogWidget)
 
 			if self.dialogWidget!=None and self.ais_point!=None:
-				
+				self.dialogWidget.qdoubleSpinBox_valuechanged=False
 				#(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
 				x=self.point_dict[self.mousePress_select_point_ID].X()
 				y=self.point_dict[self.mousePress_select_point_ID].Y()
@@ -171,7 +178,12 @@ class sketch_bspline(object):
 				self.dialogWidget.qdoubleSpinBox_x.setValue(x)
 				self.dialogWidget.qdoubleSpinBox_y.setValue(y) 
 				self.dialogWidget.qdoubleSpinBox_z.setValue(z)
-		
+				self.dialogWidget.qdoubleSpinBox_valuechanged=True
+
+				#x=self.dialogWidget.qdoubleSpinBox_x.value()
+				#y=self.dialogWidget.qdoubleSpinBox_y.value()
+				#z=self.dialogWidget.qdoubleSpinBox_z.value()
+				#print("为什么没有写入",x,y,z)
 			
 	def mouserelease(self):
 		try:
@@ -229,14 +241,13 @@ class sketch_bspline(object):
 					self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point,False)
 					self.ais_point=None
 					self.perious_ais_point_ID=None
-					print("yes")
 			except Exception as e:
 				print(e)
 				pass
 		
 
 	def dynamics_point_move_point(self):
-		if self.perious_ais_point_ID!=None and self.ais_point==None:
+		if self.perious_ais_point_ID!=None and self.ais_point!=None:
 			self.dynamics_point_move_point_shield=True
 			self.parent.Displayshape_core.canva._display.Context.Remove(self.ais_point_dict[self.perious_ais_point_ID],False)
 			(x, y, z, vx, vy, vz) = self.parent.Displayshape_core.ProjReferenceAxe()
@@ -251,6 +262,7 @@ class sketch_bspline(object):
 			self.parent.Displayshape_core.canva._display.Context.UpdateCurrentViewer()
 			bspline_curve=self.generate_bspline(self.perious_ais_point_ID,gp_Pnt(x,y,z))
 			edge = BRepBuilderAPI_MakeEdge(bspline_curve).Edge()
+			self.export_shape=edge
 			self.bspline_curve.SetShape(edge)
 			self.parent.Displayshape_core.canva._display.Context.Redisplay(self.bspline_curve,True,False)  # 重新计算更新已经显示的物
 			self.parent.Displayshape_core.canva._display.Repaint()
@@ -321,9 +333,26 @@ class sketch_bspline(object):
 
 				return ais_point
 			
-			
-			
-			
+	def Export_bspline(self):
+		try:
+			shape=self.export_shape
+			export_shape_path,ok2= QFileDialog.getSaveFileName(self.parent,"文件保存","C:/","iges (*.iges);;text (*.text)")
+			print(ok2)
+			if ok2=="iges (*.iges)":
+				write_iges_file(shape,export_shape_path)
+				self.parent.statusbar.showMessage("状态：导出成功！")  ###
+			else:
+				with open(export_shape_path, 'w') as file:
+					for point in self.point_dict.values():
+						print(point.X(),point.Y(),point.Z())
+						file.write(str(point.X()) + " " + str(point.Y()) + " " + str(point.Z()) + "\n")
+				self.parent.statusbar.showMessage("状态：导出成功！")  ###
+
+		except Exception as e:
+			print(e)
+			pass
+
+	
 	
 			
 

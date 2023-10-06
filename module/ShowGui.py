@@ -54,23 +54,26 @@ class Auto_create_ribbon(object):
 			shortcut = ribbon_list[7].split("=")[1]
 			if connection=="None":
 				connection="self.void_funtion"
+			try:
+				if not table_name in self.ribbon_table.keys():
+					self.ribbon_table[table_name]=self.parent._ribbon.add_ribbon_tab(table_name) #创建table
 				
-			if not table_name in self.ribbon_table.keys():
-				self.ribbon_table[table_name]=self.parent._ribbon.add_ribbon_tab(table_name) #创建table
-				
-			self._action_dict[action_name]=self.add_action(action_name, icon_name, status_tip, True, eval(connection), None)#创建action
+				self._action_dict[action_name]=self.add_action(action_name, icon_name, status_tip, True, eval(connection), None)#创建action
 			
-			if  not table_name in self.ribbon_dict.keys():
-				self.panel_dict[panel_name]=self.ribbon_table[table_name].add_ribbon_pane(panel_name)#创建panel
-				self.ribbon_dict[table_name]=self.panel_dict.keys()
+				if  not table_name in self.ribbon_dict.keys():
+					self.panel_dict[panel_name]=self.ribbon_table[table_name].add_ribbon_pane(panel_name)#创建panel
+					self.ribbon_dict[table_name]=self.panel_dict.keys()
 				
 				
 				
-			else:
-				if not panel_name in self.ribbon_dict[table_name]:
-					self.panel_dict[panel_name] = self.ribbon_table[table_name].add_ribbon_pane(panel_name)  # 创建panel
-					self.ribbon_dict[table_name] = self.panel_dict.keys()
-			self.panel_dict[panel_name].add_ribbon_widget(RibbonButton(self.parent, self._action_dict[action_name], True))
+				else:
+					if not panel_name in self.ribbon_dict[table_name]:
+						self.panel_dict[panel_name] = self.ribbon_table[table_name].add_ribbon_pane(panel_name)  # 创建panel
+						self.ribbon_dict[table_name] = self.panel_dict.keys()
+				self.panel_dict[panel_name].add_ribbon_widget(RibbonButton(self.parent, self._action_dict[action_name], True))
+			
+			except:
+				pass
 			
 	def Set_font(self):
 		font = QtGui.QFont()
@@ -129,8 +132,8 @@ class Ui_MainWindow(MainGui.Ui_MainWindow):
 		self.menuBar = QtWidgets.QMenuBar()
 		self.menuBar.setGeometry(QtCore.QRect(0, 0, 606 , 26))
 		self.menuBar.setObjectName("menuBar")
-		self.Displayshape_core.canva.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-		self.Displayshape_core.canva.customContextMenuRequested['QPoint'].connect(self.rightMenuShow)
+		#self.Displayshape_core.canva.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		#self.Displayshape_core.canva.customContextMenuRequested['QPoint'].connect(self.rightMenuShow)
 		#self.Displayshape_core.canva.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		#self.Displayshape_core.canva.customContextMenuRequested['QPoint'].connect(self.rightMenuShow)
 		
